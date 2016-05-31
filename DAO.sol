@@ -121,8 +121,6 @@ contract DAOInterface {
         bool newCurator;
         // Data needed for splitting the DAO
         SplitData[] splitData;
-        // True if the split dao can accept new eth during creation
-        bool publicCreation;
         // Number of Tokens in favor of the proposal
         uint yea;
         // Number of Tokens opposed to the proposal
@@ -143,6 +141,8 @@ contract DAOInterface {
         uint totalSupply;
         // Amount of Reward Tokens owned by the DAO at the time of split.
         uint rewardToken;
+        // True if the split dao can accept new eth during creation
+        bool publicCreation;
         // The new DAO contract created at the time of split.
         DAO newDAO;
     }
@@ -450,9 +450,10 @@ contract DAO is DAOInterface, Token, TokenCreation {
         p.open = true;
         //p.proposalPassed = False; // that's default
         p.newCurator = _newCurator;
-        p.publicCreation = _publicCreation
-        if (_newCurator)
+        if (_newCurator) {
             p.splitData.length++;
+            p.splitData[0].publicCreation = _publicCreation;
+        }
         p.creator = msg.sender;
         p.proposalDeposit = msg.value;
 
@@ -633,8 +634,7 @@ contract DAO is DAOInterface, Token, TokenCreation {
         // If the new DAO doesn't exist yet, create the new DAO and store the
         // current split data
         if (address(p.splitData[0].newDAO) == 0) {
-
-            address privateCreation = p.publicCreation ? address(0) : address(this);
+            address privateCreation = p.splitData[0].publicCreation ? address(0) : address(this);
             p.splitData[0].newDAO = createNewDAO(_newCurator, privateCreation);
             // Call depth limit reached, etc.
             if (address(p.splitData[0].newDAO) == 0)
