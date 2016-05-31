@@ -627,7 +627,7 @@ contract DAO is DAOInterface, Token, TokenCreation {
         // If the new DAO doesn't exist yet, create the new DAO and store the
         // current split data
         if (address(p.splitData[0].newDAO) == 0) {
-            p.splitData[0].newDAO = createNewDAO(_newCurator);
+            p.splitData[0].newDAO = createNewDAO(_newCurator, address(this));
             // Call depth limit reached, etc.
             if (address(p.splitData[0].newDAO) == 0)
                 throw;
@@ -740,7 +740,7 @@ contract DAO is DAOInterface, Token, TokenCreation {
         if (isFueled
             && now > closingTime
             && !isBlocked(msg.sender)
-            && _to != address(this) 
+            && _to != address(this)
             && transferPaidOut(msg.sender, _to, _value)
             && super.transfer(_to, _value)) {
 
@@ -857,9 +857,9 @@ contract DAO is DAOInterface, Token, TokenCreation {
         }
     }
 
-    function createNewDAO(address _newCurator) internal returns (DAO _newDAO) {
+    function createNewDAO(address _newCurator, address _privateCreation) internal returns (DAO _newDAO) {
         NewCurator(_newCurator);
-        return daoCreator.createDAO(_newCurator, 0, 0, now + splitExecutionPeriod);
+        return daoCreator.createDAO(_newCurator, 0, 0, now + splitExecutionPeriod, _privateCreation);
     }
 
     function numberOfProposals() constant returns (uint _numberOfProposals) {
@@ -893,7 +893,8 @@ contract DAO_Creator {
         address _curator,
         uint _proposalDeposit,
         uint _minTokensToCreate,
-        uint _closingTime
+        uint _closingTime,
+        address _privateCreation
     ) returns (DAO _newDAO) {
 
         return new DAO(
@@ -902,7 +903,7 @@ contract DAO_Creator {
             _proposalDeposit,
             _minTokensToCreate,
             _closingTime,
-            msg.sender
+            _privateCreation
         );
     }
 }
