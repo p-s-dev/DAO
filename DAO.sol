@@ -121,6 +121,8 @@ contract DAOInterface {
         bool newCurator;
         // Data needed for splitting the DAO
         SplitData[] splitData;
+        // True if the split dao can accept new eth during creation
+        bool publicCreation;
         // Number of Tokens in favor of the proposal
         uint yea;
         // Number of Tokens opposed to the proposal
@@ -192,6 +194,7 @@ contract DAOInterface {
     /// weeks for a regular proposal, 10 days for new Curator proposal
     /// @param _newCurator Bool defining whether this proposal is about
     /// a new Curator or not
+    /// @param _publicCreation Bool defining if a new Dao will accept new eth
     /// @return The proposal ID. Needed for voting on the proposal
     function newProposal(
         address _recipient,
@@ -199,7 +202,8 @@ contract DAOInterface {
         string _description,
         bytes _transactionData,
         uint _debatingPeriod,
-        bool _newCurator
+        bool _newCurator,
+        bool _publicCreation
     ) onlyTokenholders returns (uint _proposalID);
 
     /// @notice Check that the proposal with the ID `_proposalID` matches the
@@ -396,7 +400,8 @@ contract DAO is DAOInterface, Token, TokenCreation {
         string _description,
         bytes _transactionData,
         uint _debatingPeriod,
-        bool _newCurator
+        bool _newCurator,
+        bool _publicCreation
     ) onlyTokenholders returns (uint _proposalID) {
 
         // Sanity check
@@ -445,6 +450,7 @@ contract DAO is DAOInterface, Token, TokenCreation {
         p.open = true;
         //p.proposalPassed = False; // that's default
         p.newCurator = _newCurator;
+        p.publicCreation = _publicCreation
         if (_newCurator)
             p.splitData.length++;
         p.creator = msg.sender;
@@ -627,7 +633,9 @@ contract DAO is DAOInterface, Token, TokenCreation {
         // If the new DAO doesn't exist yet, create the new DAO and store the
         // current split data
         if (address(p.splitData[0].newDAO) == 0) {
-            p.splitData[0].newDAO = createNewDAO(_newCurator, address(this));
+
+            address privateCreation = p.publicCreation ? address(0) : address(this);
+            p.splitData[0].newDAO = createNewDAO(_newCurator, privateCreation);
             // Call depth limit reached, etc.
             if (address(p.splitData[0].newDAO) == 0)
                 throw;
@@ -740,7 +748,6 @@ contract DAO is DAOInterface, Token, TokenCreation {
         if (isFueled
             && now > closingTime
             && !isBlocked(msg.sender)
-            && _to != address(this)
             && transferPaidOut(msg.sender, _to, _value)
             && super.transfer(_to, _value)) {
 
