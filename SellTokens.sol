@@ -15,7 +15,7 @@ contract TokenInterface {
 contract SellTokensInterface {
     uint constant WEI_PER_DAO = 10000000000000000;
 //    address constant THE_DAO_ADDRESS = 0xbb9bc244d798123fde783fcc1c72d3bb8c189413;
-    address constant THE_DAO_ADDRESS = 0xcF38DDb6E933Ae8491cfE37862EE5eC7c0752e5E;
+    address constant THE_DAO_ADDRESS = 0x54e6354bEbd0106Efa25F9207476B5dF63Fb6F3F;
 }
 
 contract SellTokens is SellTokensInterface {
@@ -37,10 +37,8 @@ contract SellTokens is SellTokensInterface {
 
     function requestTokensBack() {
         if (msg.value != 0 || allowedFreeExchanges[msg.sender] == 0) throw;
-        allowedFreeExchanges[msg.sender] = 0;
-        // return tokens
         if (!theDao.transfer(msg.sender, allowedFreeExchanges[msg.sender] * WEI_PER_DAO)) throw;
-
+        allowedFreeExchanges[msg.sender] = 0;
     }
 
     function buy100DaoFor1Eth(){
