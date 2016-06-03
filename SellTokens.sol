@@ -16,7 +16,7 @@ contract SellTokensInterface {
     uint constant DAO_PER_ETH = 100;
     uint constant WEI_PER_ETH = 1000000000000000000;
 //    address constant THE_DAO_ADDRESS = 0xbb9bc244d798123fde783fcc1c72d3bb8c189413;
-    address constant THE_DAO_ADDRESS = 0xd00f1c987bE018456568B8FDdB93C5780A590Ed1;
+    address constant THE_DAO_ADDRESS = 0xcF38DDb6E933Ae8491cfE37862EE5eC7c0752e5E;
 }
 
 contract SellTokens is SellTokensInterface {
