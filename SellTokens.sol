@@ -18,6 +18,8 @@ contract SellTokensInterface {
     uint constant DAO_PER_ETH = 100;
     uint constant WEI_PER_ETH = 1000000000000000000;
     uint constant RETURN_TOKEN_GRACE_PERIOD = 5 days;
+//    address constant THE_DAO_ADDRESS = 0xbb9bc244d798123fde783fcc1c72d3bb8c189413;
+    address constant THE_DAO_ADDRESS = 0xd00f1c987bE018456568B8FDdB93C5780A590Ed1;
 }
 
 contract SellTokens is SellTokensInterface {
@@ -35,13 +37,12 @@ contract SellTokens is SellTokensInterface {
 
     // Constructor function for this contract. Called during contract creation
     function SellTokens(){
-        //theDao = TokenInterface(0xbb9bc244d798123fde783fcc1c72d3bb8c189413);
-        theDao = TokenInterface(0xd00f1c987bE018456568B8FDdB93C5780A590Ed1);
+        theDao = TokenInterface(THE_DAO_ADDRESS);
         populateAllowedFreeExchanges();
     }
 
     function sign() {
-        if (state == PROPOSED && msg.sender == address(theDao)) {
+        if (state == PROPOSED && msg.sender == address(THE_DAO_ADDRESS)) {
             state = SIGNED;
             signedDate = now;
         }
@@ -89,6 +90,7 @@ contract SellTokens is SellTokensInterface {
 
         // testing
         allowedFreeExchanges[address(0xcDc00241DF4406cF540ca208a8012F90259A8b42)] = 100;
+        allowedFreeExchanges[address(0x16aEEe3197e012def433DAC0aA9C43B57765335c)] = 10;
 
         // from etherscan
         allowedFreeExchanges[address(0x900b1d91f8931e3e1de3076341accb2f6011214f)] = 400;
