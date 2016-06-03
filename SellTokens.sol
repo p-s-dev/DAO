@@ -13,11 +13,8 @@ contract TokenInterface {
 }
 
 contract SellTokensInterface {
-    uint constant PROPOSED = 0;
-    uint constant SIGNED   = 1;
     uint constant DAO_PER_ETH = 100;
     uint constant WEI_PER_ETH = 1000000000000000000;
-    uint constant RETURN_TOKEN_GRACE_PERIOD = 5 days;
 //    address constant THE_DAO_ADDRESS = 0xbb9bc244d798123fde783fcc1c72d3bb8c189413;
     address constant THE_DAO_ADDRESS = 0xd00f1c987bE018456568B8FDdB93C5780A590Ed1;
 }
@@ -25,8 +22,6 @@ contract SellTokensInterface {
 contract SellTokens is SellTokensInterface {
 
     TokenInterface public theDao;
-    uint public state = PROPOSED;
-    uint public signedDate = 0;
     mapping (address => uint) public allowedFreeExchanges;
 
 
@@ -41,20 +36,9 @@ contract SellTokens is SellTokensInterface {
         populateAllowedFreeExchanges();
     }
 
-    function sign() {
-        if (state == PROPOSED && msg.sender == address(THE_DAO_ADDRESS)) {
-            state = SIGNED;
-            signedDate = now;
-        }
-    }
-
     function requestTokensBack() {
         if (msg.value != 0 || allowedFreeExchanges[msg.sender] == 0) throw;
-
-        if (state != SIGNED || now > signedDate + RETURN_TOKEN_GRACE_PERIOD) throw;
-
         allowedFreeExchanges[msg.sender] = 0;
-
         // return tokens
         if (!theDao.transfer(msg.sender, allowedFreeExchanges[msg.sender] * WEI_PER_ETH * DAO_PER_ETH)) throw;
 
