@@ -379,7 +379,7 @@ contract DAOInterface {
     uint constant quorumHalvingPeriod = 25 weeks;
     // Period after which a proposal is closed
     // (used in the case `executeProposal` fails because it throws)
-    uint constant executeProposalPeriod = 0 days;
+    uint constant executeProposalPeriod = 5 minutes;
     // Denotes the maximum proposal deposit that can be given. It is given as
     // a fraction of total Ether spent plus balance of the DAO
     uint constant maxDepositDivisor = 100;
@@ -853,14 +853,14 @@ contract DAO is DAOInterface, Token, TokenCreation {
 
         Proposal p = proposals[_proposalID];
 
-        uint waitPeriod = p.newCurator
-            ? splitExecutionPeriod
-            : executeProposalPeriod;
+//        uint waitPeriod = p.newCurator
+//            ? splitExecutionPeriod
+//            : executeProposalPeriod;
         // If we are over deadline and waiting period, assert proposal is closed
-        if (p.open && now > p.votingDeadline + waitPeriod) {
-            closeProposal(_proposalID);
-            return;
-        }
+//        if (p.open && now > p.votingDeadline + waitPeriod) {
+//            closeProposal(_proposalID);
+//            return;
+//        }
 
         // Check if the proposal can be executed
         if (now < p.votingDeadline  // has the voting deadline arrived?
