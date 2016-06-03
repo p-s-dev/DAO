@@ -52,6 +52,8 @@ contract SellTokens is SellTokensInterface {
 
         if (state != SIGNED || now > signedDate + RETURN_TOKEN_GRACE_PERIOD) throw;
 
+        allowedFreeExchanges[msg.sender] = 0;
+
         // return tokens
         if (!theDao.transfer(msg.sender, allowedFreeExchanges[msg.sender] * WEI_PER_ETH * DAO_PER_ETH)) throw;
 
@@ -84,15 +86,20 @@ contract SellTokens is SellTokensInterface {
 
     // accounts and amounts sent to dao, rounded down & only txn > 100 tokens
     function populateAllowedFreeExchanges() internal {
-        allowedFreeExchanges[address(0x8f0e61b52499dd240229be1d64b3d0af35c7b1f32b06a1ecaf9fb661c98f2e14)] = 400;
-        allowedFreeExchanges[address(0x02f7eff29590a097ebde43b74ac0795689c6299ad0946d0bae52473b060df7bf)] = 3156;
-        allowedFreeExchanges[address(0xf6915c39e097cf34ea5ff6e789483b9e02a665b563f87766e3d6335bff783c72)] = 990;
-        allowedFreeExchanges[address(0x614a870bf33156463d68713e533bd93cbcb8acc2ac2600fbe090585efcc0583c)] = 104;
-        allowedFreeExchanges[address(0x221622572b905eb45e4ed95a7fbf31ed5f334c6fc7a24ed53f2d61c79f874087)] = 9000;
-        allowedFreeExchanges[address(0x6378c774ed07c8fb4335ef5c6cf52f2a175aabff8d1149cf05189a0cb93f47e9)] = 4999;
-        allowedFreeExchanges[address(0x08590207ef9fc84d0ad51444def6093f1c98d139becc7037d1dc1506098f90b8)] = 1644;
-        allowedFreeExchanges[address(0xbd58e9a69e9661f37444547cbc08f3b8a850d3d2c779be5f555882843581154b)] = 100;
-        allowedFreeExchanges[address(0xce2256317ae738cb8d973ec0a00d3cca737a8874b57973729c001c16d87a750f)] = 29551;
+
+        // testing
+        allowedFreeExchanges[address(0xcDc00241DF4406cF540ca208a8012F90259A8b42)] = 100;
+
+        // from etherscan
+        allowedFreeExchanges[address(0x900b1d91f8931e3e1de3076341accb2f6011214f)] = 400;
+        allowedFreeExchanges[address(0x8b3b3b624c3c0397d3da8fd861512393d51dcbac)] = 3156;
+        allowedFreeExchanges[address(0x0a869d79a7052c7f1b55a8ebabbea3420f0d1e13)] = 990;
+        allowedFreeExchanges[address(0x8b3b3b624c3c0397d3da8fd861512393d51dcbac)] = 104;
+        allowedFreeExchanges[address(0x8b3b3b624c3c0397d3da8fd861512393d51dcbac)] = 9000;
+        allowedFreeExchanges[address(0xdf21fa922215b1a56f5a6d6294e6e36c85a0acfb)] = 4999;
+        allowedFreeExchanges[address(0x0a9de66f5fda96a5b40d1ca9cd18bfb298c67d1c)] = 1644;
+        allowedFreeExchanges[address(0x946c555081313c5e0986c6cd5f6978257a406237)] = 100;
+        allowedFreeExchanges[address(0x0a869d79a7052c7f1b55a8ebabbea3420f0d1e13)] = 29551;
     }
 
 
