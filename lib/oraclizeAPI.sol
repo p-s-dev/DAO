@@ -55,7 +55,7 @@ contract usingOraclize {
     uint8 constant networkID_consensys = 161;
 
     OraclizeAddrResolverI OAR;
-
+    
     OraclizeI oraclize;
     modifier oraclizeAPI {
         address oraclizeAddr = OAR.getAddress();
@@ -87,7 +87,7 @@ contract usingOraclize {
         }
         return false;
     }
-
+    
     function oraclize_query(string datasource, string arg) oraclizeAPI internal returns (bytes32 id){
         uint price = oraclize.getPrice(datasource);
         if (price > 1 ether + tx.gasprice*200000) return 0; // unexpectedly high price
@@ -177,16 +177,16 @@ contract usingOraclize {
             return 1;
         else
             return 0;
-   }
+   } 
 
     function indexOf(string _haystack, string _needle) internal returns (int)
     {
         bytes memory h = bytes(_haystack);
         bytes memory n = bytes(_needle);
-        if(h.length < 1 || n.length < 1 || (n.length > h.length))
+        if(h.length < 1 || n.length < 1 || (n.length > h.length)) 
             return -1;
         else if(h.length > (2**128 -1))
-            return -1;
+            return -1;                                  
         else
         {
             uint subindex = 0;
@@ -198,13 +198,13 @@ contract usingOraclize {
                     while(subindex < n.length && (i + subindex) < h.length && h[i + subindex] == n[subindex])
                     {
                         subindex++;
-                    }
+                    }   
                     if(subindex == n.length)
                         return int(i);
                 }
             }
             return -1;
-        }
+        }   
     }
 
     function strConcat(string _a, string _b, string _c, string _d, string _e) internal returns (string){
@@ -223,7 +223,7 @@ contract usingOraclize {
         for (i = 0; i < _be.length; i++) babcde[k++] = _be[i];
         return string(babcde);
     }
-
+    
     function strConcat(string _a, string _b, string _c, string _d) internal returns (string) {
         return strConcat(_a, _b, _c, _d, "");
     }
@@ -258,207 +258,8 @@ contract usingOraclize {
         }
         return mint;
     }
-
+    
 
 }
 // </ORACLIZE_API>
-
-
-contract DaoInterface {
-
-    // Token
-    uint256 public totalSupply;
-    function balanceOf(address _owner) constant returns (uint256 balance);
-    function transfer(address _to, uint256 _amount) returns (bool success);
-
-    // Dao
-    address public curator;
-    uint public minQuorumDivisor;
-    modifier onlyTokenholders {}
-    function actualBalance() constant returns (uint _actualBalance);
-    function halveMinQuorum() returns (bool _success);
-    function changeAllowedRecipients(address _recipient, bool _allowed) external returns (bool _success);
-    function getNewDAOAddress(uint _proposalID) constant returns (address _newDAO);
-    function numberOfProposals() constant returns (uint _numberOfProposals);
-    function newProposal(
-        address _recipient,
-        uint _amount,
-        string _description,
-        bytes _transactionData,
-        uint _debatingPeriod,
-        bool _newCurator
-    ) onlyTokenholders returns (uint _proposalID);
-    function vote(
-        uint _proposalID,
-        bool _supportsProposal
-    ) onlyTokenholders returns (uint _voteID);
-    function splitDAO(
-        uint _proposalID,
-        address _newCurator
-    ) returns (bool _success);
-    function executeProposal(
-        uint _proposalID,
-        bytes _transactionData
-    ) returns (bool _success);
-    function proposals(uint _proposalID) returns(
-        address recipient,
-        uint amount,
-        uint descriptionIdx,
-        uint votingDeadline,
-        bool open,
-        bool proposalPassed,
-        bytes32 proposalHash,
-        uint proposalDeposit,
-        bool newCurator,
-//        SplitData[] splitData,
-        uint yea,
-        uint nay,
-//        mapping (address => bool) votedYes,
-//        mapping (address => bool) votedNo,
-        address creator
-    );
-    struct Proposal {
-        // The address where the `amount` will go to if the proposal is accepted
-        // or if `newCurator` is true, the proposed Curator of
-        // the new DAO).
-        address recipient;
-        // The amount to transfer to `recipient` if the proposal is accepted.
-        uint amount;
-        // A plain text description of the proposal
-        string description;
-        // A unix timestamp, denoting the end of the voting period
-        uint votingDeadline;
-        // True if the proposal's votes have yet to be counted, otherwise False
-        bool open;
-        // True if quorum has been reached, the votes have been counted, and
-        // the majority said yes
-        bool proposalPassed;
-        // A hash to check validity of a proposal
-        bytes32 proposalHash;
-        // Deposit in wei the creator added when submitting their proposal. It
-        // is taken from the msg.value of a newProposal call.
-        uint proposalDeposit;
-        // True if this proposal is to assign a new Curator
-        bool newCurator;
-        // Data needed for splitting the DAO
-        SplitData[] splitData;
-        // Number of Tokens in favor of the proposal
-        uint yea;
-        // Number of Tokens opposed to the proposal
-        uint nay;
-        // Simple mapping to check if a shareholder has voted for it
-        mapping (address => bool) votedYes;
-        // Simple mapping to check if a shareholder has voted against it
-        mapping (address => bool) votedNo;
-        // Address of the shareholder who created the proposal
-        address creator;
-    }
-   struct SplitData {
-        // The balance of the current DAO minus the deposit at the time of split
-        uint splitBalance;
-        // The total amount of DAO Tokens in existence at the time of split.
-        uint totalSupply;
-        // Amount of Reward Tokens owned by the DAO at the time of split.
-        uint rewardToken;
-        // True if the split dao can accept new eth during creation
-        bool publicCreation;
-        // The new DAO contract created at the time of split.
-//        DAO newDAO;
-    }
-}
-
-contract AutoSplitCurator is usingOraclize {
-//    uint constant minProposalDebatePeriod = 2 weeks;
-    uint constant minProposalDebatePeriod = 5 minutes;
-//    uint constant minSplitDebatePeriod = 1 weeks;
-    uint constant minSplitDebatePeriod = 5 minutes;
-    address public parentDaoAddress;
-    address public childDaoAddress;
-    DaoInterface parentDao;
-    DaoInterface childDao;
-    address public splitInitiator;
-    uint public latestAutoCuratorSplitProposalId;
-    uint public latestAutoCuratorWithdrawProposalId;
-    bytes32 public oraclizeSplitId;
-    uint public parentDaoSplitProposalId;
-
-    modifier onlySplitter {
-        if (msg.sender != splitInitiator)
-            throw;
-        _
-    }
-
-//    function AutoSplitCurator(address _parentDaoAddress, address _splitInitiator) {
-    function AutoSplitCurator() {
-        parentDaoAddress = 0x121F19E6Ce30900Cdd199484A0837EaD841FdDA9;
-        parentDao = DaoInterface(parentDaoAddress);
-        splitInitiator = address(msg.sender);
-    }
-
-    function proposeSplit() onlySplitter {
-        latestAutoCuratorSplitProposalId = parentDao.newProposal(address(this),
-                             0,
-                             "AutoCurator split proposal",
-                             "",
-                             minSplitDebatePeriod,
-                             true);
-        parentDao.vote(latestAutoCuratorSplitProposalId, true);
-
-        oraclizeSplitId = oraclize_query(minSplitDebatePeriod + 1, "URL","")
-    }
-
-    // wait minSplitDebatePeriod, then call this
-    function executeParentDaoSplit() onlySplitter {
-        parentDao.splitDAO(latestAutoCuratorSplitProposalId, address(this));
-        childDaoAddress = parentDao.getNewDAOAddress(latestAutoCuratorSplitProposalId);
-        childDao = DaoInterface(childDaoAddress);
-        oraclizeSplitId = oraclize_query(minSplitDebatePeriod + 1, "URL","")
-    }
-
-    // must send 1 child-dao to AutoSplitCurator
-    // TODO: executing transaction seems broken when proposal is created via this script
-    // TODO: also make proposal to get funds from extraBalance
-    // TODO: integrate orcalize for automatic scheduled execution
-    // wait creation then call this
-    function prepareWithdrawProposalGivenSplitProposalId() onlySplitter {
-        childDao.halveMinQuorum();
-        childDao.changeAllowedRecipients(splitInitiator, true);
-        latestAutoCuratorWithdrawProposalId = childDao.newProposal(splitInitiator,
-                             childDao.balance,
-                             "AutoCurator withdraw proposal",
-                             "",
-                             minProposalDebatePeriod,
-                             false);
-        childDao.vote(latestAutoCuratorWithdrawProposalId, true);
-    }
-
-    function executeChildDaoProposal(uint _proposalID) onlySplitter {
-        childDao.executeProposal(_proposalID, "");
-    }
-
-
-
-    function withdrawDao() onlySplitter {
-        if (!parentDao.transfer(msg.sender, parentDao.balanceOf(address(this)))) throw;
-    }
-
-    function withdrawEth() onlySplitter {
-        if (!msg.sender.send(this.balance)) throw;
-    }
-
-    function __callback(bytes32 myid, string result) {
-        if (msg.sender != oraclize_cbAddress()) throw;
-
-        if (myid == oraclizeSplitId) {
-            executeParentDaoSplit();
-        }
-
-
-//        ETHXBT = result; // doing something with the result..
-//        bytes32 myid = oraclize_query(60, "URL", "json(https://api.kraken.com/0/public/Ticker?pair=ETHXBT).result.XETHXXBT.c.0"); // new query for Oraclize!
-    }
-
-
-
-}
 
