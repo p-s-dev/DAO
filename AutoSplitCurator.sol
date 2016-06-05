@@ -5,6 +5,7 @@ contract DaoInterface {
     uint public minQuorumDivisor;
     modifier onlyTokenholders {}
     function actualBalance() constant returns (uint _actualBalance);
+    function balanceOf(address _owner) constant returns (uint256 balance);
     function halveMinQuorum() returns (bool _success);
     function changeAllowedRecipients(address _recipient, bool _allowed) external returns (bool _success);
     function getNewDAOAddress(uint _proposalID) constant returns (address _newDAO);
@@ -116,41 +117,45 @@ contract AutoSplitCurator {
     }
 
     // must send 1 child-dao to AutoSplitCurator
+    // TODO: executing transaction seems broken when proposal is created via this script
     // TODO: also make proposal to get funds from extraBalance
     // TOTO: build-in the transaction to create the split against the parent-dao, and vote, and call splitDao
+    // TODO: integrate orcalize for automatic scheduled execution
     function prepareWithdrawProposalGivenSplitProposalId() {
-        childDao.changeAllowedRecipients(splitInitiator, true);
-        latestAutoCuratorGeneratedProposalId = childDao.newProposal(splitInitiator,
-                             childDao.balance,
-                             "AutoCurator withdraw proposal",
-                             "",
-                             minProposalDebatePeriod,
-                             false);
-        childDao.vote(latestAutoCuratorGeneratedProposalId, true);
-    }
-
-
-
-    function changeAllowedRecipients() {
-        childDao.changeAllowedRecipients(splitInitiator, true);
-    }
-
-    function newProposal() {
-        latestAutoCuratorGeneratedProposalId = childDao.newProposal(splitInitiator,
-                             childDao.balance,
-                             "AutoCurator withdraw proposal",
-                             "",
-                             minProposalDebatePeriod,
-                             false);
-    }
-
-    function vote() {
-        childDao.vote(latestAutoCuratorGeneratedProposalId, true);
-    }
-
-    function lowerQuorum() {
         childDao.halveMinQuorum();
+        childDao.changeAllowedRecipients(splitInitiator, true);
+        bytes bites;
+        latestAutoCuratorGeneratedProposalId = childDao.newProposal(splitInitiator,
+                             childDao.balance,
+                             "AutoCurator withdraw proposal",
+                             bites,
+                             minProposalDebatePeriod,
+                             false);
+        childDao.vote(latestAutoCuratorGeneratedProposalId, true);
     }
+
+
+
+//    function changeAllowedRecipients() {
+//        childDao.changeAllowedRecipients(splitInitiator, true);
+//    }
+
+//    function newProposal() {
+//        latestAutoCuratorGeneratedProposalId = childDao.newProposal(splitInitiator,
+//                             childDao.balance,
+//                             "AutoCurator withdraw proposal",
+//                             "",
+//                             minProposalDebatePeriod,
+//                             false);
+//    }
+
+//    function vote() {
+//        childDao.vote(latestAutoCuratorGeneratedProposalId, true);
+//    }
+
+//    function lowerQuorum() {
+//        childDao.halveMinQuorum();
+//    }
 
     function debugMinQuorumRequired() returns (uint _minQuorum) {
         return childDao.totalSupply() / childDao.minQuorumDivisor() +
