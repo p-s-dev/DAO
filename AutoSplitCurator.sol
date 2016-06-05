@@ -1,8 +1,10 @@
 contract DaoInterface {
 
     address public curator;
-//    Proposal[] public proposalsArray;
+    uint256 public totalSupply;
+    uint public minQuorumDivisor;
     modifier onlyTokenholders {}
+    function actualBalance() constant returns (uint _actualBalance);
     function halveMinQuorum() returns (bool _success);
     function changeAllowedRecipients(address _recipient, bool _allowed) external returns (bool _success);
     function getNewDAOAddress(uint _proposalID) constant returns (address _newDAO);
@@ -87,48 +89,78 @@ contract DaoInterface {
 }
 
 contract AutoSplitCurator {
-    address parentDaoAddress;
-    address childDaoAddress;
+//    uint constant minProposalDebatePeriod = 2 weeks;
+    uint constant minProposalDebatePeriod = 5 minutes;
+    address public parentDaoAddress;
+    address public childDaoAddress;
     DaoInterface parentDao;
     DaoInterface childDao;
-    address splitInitiator;
-    
+    address public splitInitiator;
+    uint public latestAutoCuratorGeneratedProposalId;
+    uint public parentDaoSplitProposalId;
+
     function AutoSplitCurator(address _parentDaoAddress, address _splitInitiator) {
         parentDaoAddress = _parentDaoAddress;
         parentDao = DaoInterface(_parentDaoAddress);
         splitInitiator = _splitInitiator;
     }
-    
-    // must send 1 child-dao to AutoSplitCurator
-    function prepareWithdrawProposalGivenSplitProposalId(uint _proposalID) {
-        childDao = getChildDao(_proposalID);
-        bytes transactionData;
-        childDao.changeAllowedRecipients(splitInitiator, true);
-        uint proposalId = childDao.newProposal(splitInitiator,  
-                             childDao.balance,
-                             "AutoCurator withdraw proposal", 
-                             transactionData, 
-                             1209600, 
-                             false);
-        childDao.vote(proposalId, true);
+
+    function initializeWithParentDaoSplitProposalId(uint _proposalID) {
+        var (recipient,,,,,,,,,,,creator) = parentDao.proposals(_proposalID);
+        if (recipient != address(this) || creator != splitInitiator) throw;
+        parentDaoSplitProposalId = _proposalID;
+        childDaoAddress = parentDao.getNewDAOAddress(_proposalID);
+        childDao = DaoInterface(childDaoAddress);
+
+        // add debugMinQuorumRequired, debugSplitInitiatorOwns calculations here
     }
-    
+
+    // must send 1 child-dao to AutoSplitCurator
+    // TODO: also make proposal to get funds from extraBalance
+    // TOTO: build-in the transaction to create the split against the parent-dao, and vote, and call splitDao
+    function prepareWithdrawProposalGivenSplitProposalId() {
+        childDao.changeAllowedRecipients(splitInitiator, true);
+        latestAutoCuratorGeneratedProposalId = childDao.newProposal(splitInitiator,
+                             childDao.balance,
+                             "AutoCurator withdraw proposal",
+                             "",
+                             minProposalDebatePeriod,
+                             false);
+        childDao.vote(latestAutoCuratorGeneratedProposalId, true);
+    }
+
+
+
+    function changeAllowedRecipients() {
+        childDao.changeAllowedRecipients(splitInitiator, true);
+    }
+
+    function newProposal() {
+        latestAutoCuratorGeneratedProposalId = childDao.newProposal(splitInitiator,
+                             childDao.balance,
+                             "AutoCurator withdraw proposal",
+                             "",
+                             minProposalDebatePeriod,
+                             false);
+    }
+
+    function vote() {
+        childDao.vote(latestAutoCuratorGeneratedProposalId, true);
+    }
+
     function lowerQuorum() {
         childDao.halveMinQuorum();
     }
-    
-    function getChildDao(uint _proposalID) returns (DaoInterface _childDao) {
-        var (recipient,,,,,,,,,,,creator) = parentDao.proposals(_proposalID);
 
-        if (recipient != address(this) || 
-            creator != splitInitiator) throw;
-
-//        if (parentDao.proposals[_proposalID].recipient != address(this) || 
-//            parentDao.proposals[_proposalID].creator != splitInitiator) throw;
-
-        childDao = DaoInterface(parentDao.getNewDAOAddress(_proposalID));
-        return childDao;
+    function debugMinQuorumRequired() returns (uint _minQuorum) {
+        return childDao.totalSupply() / childDao.minQuorumDivisor() +
+            (childDao.balance * childDao.totalSupply()) / (3 * (childDao.actualBalance()));
     }
+
+    function debugSplitInitiatorOwns() returns (uint _minQuorum) {
+        return childDao.balanceOf(splitInitiator);
+    }
+
 
 }
 
