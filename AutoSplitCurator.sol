@@ -266,6 +266,9 @@ contract usingOraclize {
 
 contract DaoInterface {
 
+    // Token Creation
+    uint public closingTime;
+
     // Token
     uint256 public totalSupply;
     function balanceOf(address _owner) constant returns (uint256 balance);
@@ -379,8 +382,11 @@ contract AutoSplitCurator is usingOraclize {
     address public splitInitiator;
     uint public latestAutoCuratorSplitProposalId;
     uint public latestAutoCuratorWithdrawProposalId;
-    bytes32 public oraclizeSplitId;
     uint public parentDaoSplitProposalId;
+
+    bytes32 public oraclizeSplitProposalId;
+    bytes32 public oraclizeSplitExecutionId;
+    bytes32 public oraclizeRefundProposalId;
 
     modifier onlySplitter {
         if (msg.sender != splitInitiator)
@@ -403,8 +409,7 @@ contract AutoSplitCurator is usingOraclize {
                              minSplitDebatePeriod,
                              true);
         parentDao.vote(latestAutoCuratorSplitProposalId, true);
-
-        oraclizeSplitId = oraclize_query(minSplitDebatePeriod + 1, "URL","")
+        oraclizeSplitProposalId = oraclize_query(now + minSplitDebatePeriod + 1, "URL","");
     }
 
     // wait minSplitDebatePeriod, then call this
@@ -412,7 +417,7 @@ contract AutoSplitCurator is usingOraclize {
         parentDao.splitDAO(latestAutoCuratorSplitProposalId, address(this));
         childDaoAddress = parentDao.getNewDAOAddress(latestAutoCuratorSplitProposalId);
         childDao = DaoInterface(childDaoAddress);
-        oraclizeSplitId = oraclize_query(minSplitDebatePeriod + 1, "URL","")
+        oraclizeSplitExecutionId = oraclize_query(childDao.closingTime() + 1, "URL","");
     }
 
     // must send 1 child-dao to AutoSplitCurator
@@ -430,13 +435,24 @@ contract AutoSplitCurator is usingOraclize {
                              minProposalDebatePeriod,
                              false);
         childDao.vote(latestAutoCuratorWithdrawProposalId, true);
+        oraclizeRefundProposalId = oraclize_query(now + minProposalDebatePeriod + 1, "URL","");
     }
 
     function executeChildDaoProposal(uint _proposalID) onlySplitter {
         childDao.executeProposal(_proposalID, "");
     }
 
+    function __callback(bytes32 myid, string result) {
+        if (msg.sender != oraclize_cbAddress()) throw;
 
+        if (myid == oraclizeSplitProposalId) {
+            executeParentDaoSplit();
+        } else if (myid == oraclizeSplitExecutionId) {
+            prepareWithdrawProposalGivenSplitProposalId();
+        } else if (myid == oraclizeRefundProposalId) {
+            executeChildDaoProposal(latestAutoCuratorWithdrawProposalId);
+        }
+    }
 
     function withdrawDao() onlySplitter {
         if (!parentDao.transfer(msg.sender, parentDao.balanceOf(address(this)))) throw;
@@ -445,19 +461,6 @@ contract AutoSplitCurator is usingOraclize {
     function withdrawEth() onlySplitter {
         if (!msg.sender.send(this.balance)) throw;
     }
-
-    function __callback(bytes32 myid, string result) {
-        if (msg.sender != oraclize_cbAddress()) throw;
-
-        if (myid == oraclizeSplitId) {
-            executeParentDaoSplit();
-        }
-
-
-//        ETHXBT = result; // doing something with the result..
-//        bytes32 myid = oraclize_query(60, "URL", "json(https://api.kraken.com/0/public/Ticker?pair=ETHXBT).result.XETHXXBT.c.0"); // new query for Oraclize!
-    }
-
 
 
 }
