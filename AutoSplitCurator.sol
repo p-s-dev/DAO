@@ -458,6 +458,10 @@ contract AutoSplitCurator is usingOraclize {
         if (!parentDao.transfer(msg.sender, parentDao.balanceOf(address(this)))) throw;
     }
 
+    function withdrawChildDao() onlySplitter {
+        if (!childDao.transfer(msg.sender, childDao.balanceOf(address(this)))) throw;
+    }
+
     function withdrawEth() onlySplitter {
         if (!msg.sender.send(this.balance)) throw;
     }
