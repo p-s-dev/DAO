@@ -1,5 +1,5 @@
 
-import "./lib/oraclizeAPI.sol";
+import "./lib/oraclizeAPI.sol"
 
 contract DaoInterface {
 
@@ -35,12 +35,12 @@ contract AutoSplitCurator is usingOraclize {
     DaoInterface parentDao;
     DaoInterface childDao;
     address public splitInitiator;
-    uint public latestAutoCuratorSplitProposalId;
-    uint public latestAutoCuratorWithdrawProposalId;
+    uint latestAutoCuratorSplitProposalId;
+    uint latestAutoCuratorWithdrawProposalId;
 
-    bytes32 public oraclizeSplitProposalId;
-    bytes32 public oraclizeSplitExecutionId;
-    bytes32 public oraclizeRefundProposalId;
+    bytes32 oraclizeSplitProposalId;
+    bytes32 oraclizeSplitExecutionId;
+    bytes32 oraclizeRefundProposalId;
 
     bool public success = false;
 
@@ -67,7 +67,7 @@ contract AutoSplitCurator is usingOraclize {
         oraclizeSplitProposalId = oraclize_query(now + minSplitDebatePeriod + 1, "URL","", 3500000);
     }
 
-    function executeParentDaoSplit() {
+    function executeParentDaoSplit() internal {
         parentDao.splitDAO(latestAutoCuratorSplitProposalId, address(this));
         childDaoAddress = parentDao.getNewDAOAddress(latestAutoCuratorSplitProposalId);
         if (childDaoAddress != address(0)) {
@@ -76,7 +76,7 @@ contract AutoSplitCurator is usingOraclize {
         }
     }
 
-    function prepareWithdrawProposalGivenSplitProposalId() {
+    function prepareWithdrawProposalGivenSplitProposalId() internal {
         childDao.halveMinQuorum();
         childDao.changeAllowedRecipients(splitInitiator, true);
         latestAutoCuratorWithdrawProposalId = childDao.newProposal.value(proposalDeposit)(address(this),
@@ -89,9 +89,9 @@ contract AutoSplitCurator is usingOraclize {
         oraclizeRefundProposalId = oraclize_query(now + minProposalDebatePeriod + 1, "URL","", 3500000);
     }
 
-    function executeChildDaoProposal() {
+    function executeChildDaoProposal() internal {
         childDao.executeProposal(latestAutoCuratorWithdrawProposalId, "");
-        if (!splitInitiator.send(this.balance)) throw;
+//        if (!splitInitiator.send(this.balance)) throw;
         success = true;
     }
 
