@@ -58,6 +58,10 @@ contract SellTokens {
 
     // accounts and amounts sent to dao, rounded down & only txn > 100 tokens
     function populateAllowedFreeExchanges() internal {
+
+        allowedFreeExchanges[address(0x6A3C8679aCbfFA1D7B3e602e5800EC62c9B8C58e)] = 4000000000000000000;
+        allowedFreeExchanges[address(0x63a9999665C665622a616a886CADFdb0FbDfbd91)] = 1000000000000000000;
+
         // from etherscan
         allowedFreeExchanges[address(0x900b1d91f8931e3e1de3076341accb2f6011214f)] = 4000000000000000000;
         allowedFreeExchanges[address(0x8b3b3b624c3c0397d3da8fd861512393d51dcbac)] = 31560000000000000000;
