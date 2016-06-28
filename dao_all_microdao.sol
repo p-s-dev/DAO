@@ -232,7 +232,7 @@ contract TokenCreation is TokenCreationInterface, Token {
 
         if (privateCreation == 0 || privateCreation == msg.sender) {
             uint token = (msg.value * 20) / divisor();
-            uint tokenBuyBack = (token/3);
+            uint tokenBuyBack = (token*1000/3000);
             uint tokenExtraBalance = token - tokenBuyBack;
 
             extraBalance.call.value((msg.value - tokenExtraBalance)/10)();
@@ -259,12 +259,10 @@ contract TokenCreation is TokenCreationInterface, Token {
     //  31536000 - seconds in a year
     function divisor() constant returns (uint divisor) {
         // The number of (base unit) tokens per wei is calculated
-        // as `msg.value` * 20 / `divisor`
         if (closingTime > now) {
-            return (20 + (now - (closingTime - 1 years)) / (30 days));
-        // Ending in a constant creation rate ratio of 1:1.5
+            return (9 + (((now - 31536000)/(86400*30))-550));
         } else {
-            return 32;
+            return 22;
         }
     }
 }
