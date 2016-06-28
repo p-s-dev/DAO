@@ -232,11 +232,11 @@ contract TokenCreation is TokenCreationInterface, Token {
 
         if (privateCreation == 0 || privateCreation == msg.sender) {
             uint token = (msg.value * 20) / divisor();
-            uint tokenExtraBalance = (token * 7/8);
-            uint tokenBuyBack = (token/8);
+            uint tokenBuyBack = (token/3);
+            uint tokenExtraBalance = token - tokenBuyBack;
 
-            extraBalance.call.value(msg.value - tokenExtraBalance)();
-            buybackBalance.call.value(msg.value - tokenBuyBack)();
+            extraBalance.call.value((msg.value - tokenExtraBalance)/10)();
+            buybackBalance.call.value((msg.value - tokenBuyBack)/10)();
 
             balances[_tokenHolder] += token;
             totalSupply += token;
