@@ -1,5 +1,7 @@
-
 /*
+
+- Bytecode Verification performed was compared on second iteration -
+
 This file is part of the DAO.
 
 The DAO is free software: you can redistribute it and/or modify
@@ -152,147 +154,8 @@ along with the DAO.  If not, see <http://www.gnu.org/licenses/>.
 
 
 /*
- * Token Creation contract, used by the DAO to create its tokens and initialize
- * its ether. Feel free to modify the divisor method to implement different
- * Token Creation parameters
-*/
-
-
-contract TokenCreationInterface {
-
-    // Minimum fueling goal of the token creation, denominated in tokens to
-    // be created
-    uint public minTokensToCreate;
-    // True if the DAO reached its minimum fueling goal, false otherwise
-    bool public isFueled;
-    // For DAO splits - if privateCreation is 0, then it is a public token
-    // creation, otherwise only the address stored in privateCreation is
-    // allowed to create tokens
-    address public privateCreation;
-    // hold extra ether which has been sent after the DAO token
-    // creation rate has increased
-    ManagedAccount public extraBalance;
-    // The account used to manage the rewards which are to be distributed to the
-    // DAO Token Holders of this DAO
-    ManagedAccount public rewardAccount;
-    // tracks the amount of wei given from each contributor (used for refund)
-    mapping (address => uint256) weiGiven;
-
-    /// @dev Constructor setting the minimum fueling goal and the
-    /// end of the Token Creation
-    /// @param _minTokensToCreate Minimum fueling goal in number of
-    ///        Tokens to be created
-    /// @param _privateCreation Zero means that the creation is public.  A
-    /// non-zero address represents the only address that can create Tokens
-    /// (the address can also create Tokens on behalf of other accounts)
-    // This is the constructor: it can not be overloaded so it is commented out
-    //  function TokenCreation(
-        //  uint _minTokensTocreate,
-        //  address _privateCreation
-    //  );
-
-    /// @notice Create Token with `_tokenHolder` as the initial owner of the Token
-    /// @param _tokenHolder The address of the Tokens's recipient
-    /// @return Whether the token creation was successful
-    function createTokenProxy(address _tokenHolder) returns (bool success);
-
-    /// @notice Refund `msg.sender` in the case the Token Creation did
-    /// not reach its minimum fueling goal
-    function refund();
-
-    event FuelingToDate(uint value);
-    event CreatedToken(address indexed to, uint amount);
-    event Refund(address indexed to, uint value);
-}
-
-
-contract TokenCreation is TokenCreationInterface, Token {
-    function TokenCreation(
-        uint _minTokensToCreate,
-        address _privateCreation) {
-
-        minTokensToCreate = _minTokensToCreate;
-        privateCreation = _privateCreation;
-        extraBalance = new ManagedAccount(address(this), true);
-        rewardAccount = new ManagedAccount(address(this), false);
-    }
-
-
-
-    function createTokenProxy(address _tokenHolder) returns (bool success) {
-
-        if (privateCreation == 0 || privateCreation == msg.sender) {
-            uint token = msg.value;
-            uint tokenExtraBalance = token/3;
-            uint tokenReward = token - tokenExtraBalance;
-
-            extraBalance.call.value((msg.value - tokenExtraBalance)/10)();
-            rewardAccount.call.value((msg.value - tokenReward)/10)();
-
-            balances[_tokenHolder] += token;
-            totalSupply += token;
-            weiGiven[_tokenHolder] += msg.value;
-            CreatedToken(_tokenHolder, token);
-            if (totalSupply >= minTokensToCreate && !isFueled) {
-                isFueled = true;
-                FuelingToDate(totalSupply);
-            }
-            return true;
-        }
-        throw;
-    }
-
-    function refund() noEther {
-        throw;
-    }
-
-}
-
-
-/*
-This file is part of the DAO.
-
-The DAO is free software: you can redistribute it and/or modify
-it under the terms of the GNU lesser General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-The DAO is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU lesser General Public License for more details.
-
-You should have received a copy of the GNU lesser General Public License
-along with the DAO.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
-
-/*
-Standard smart contract for a Decentralized Autonomous Organization (DAO)
-to automate organizational governance and decision-making.
-*/
-
-/*
-This file is part of the DAO.
-
-The DAO is free software: you can redistribute it and/or modify
-it under the terms of the GNU lesser General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-The DAO is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU lesser General Public License for more details.
-
-You should have received a copy of the GNU lesser General Public License
-along with the DAO.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
-
-/*
-Basic account, used by the DAO contract to separately manage both the rewards
-and the extraBalance accounts.
+Basic account, used by the DAO contract to separately manage both the rewards 
+and the extraBalance accounts. 
 */
 
 contract ManagedAccountInterface {
@@ -321,8 +184,8 @@ contract ManagedAccount is ManagedAccountInterface{
         payOwnerOnly = _payOwnerOnly;
     }
 
-    // When the contract receives a transaction without data this is called.
-    // It counts the amount of ether it receives and stores it in
+    // When the contract receives a transaction without data this is called. 
+    // It counts the amount of ether it receives and stores it in 
     // accumulatedInput.
     function() {
         accumulatedInput += msg.value;
@@ -331,7 +194,7 @@ contract ManagedAccount is ManagedAccountInterface{
     function payOut(address _recipient, uint _amount) returns (bool) {
         if (msg.sender != owner || msg.value > 0 || (payOwnerOnly && _recipient != owner))
             throw;
-        if (_recipient.send(_amount)) {
+        if (_recipient.call.value(_amount)()) {
             PayOut(_recipient, _amount);
             return true;
         } else {
@@ -339,6 +202,169 @@ contract ManagedAccount is ManagedAccountInterface{
         }
     }
 }
+/*
+This file is part of the DAO.
+
+The DAO is free software: you can redistribute it and/or modify
+it under the terms of the GNU lesser General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+The DAO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU lesser General Public License for more details.
+
+You should have received a copy of the GNU lesser General Public License
+along with the DAO.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
+/*
+ * Token Creation contract, used by the DAO to create its tokens and initialize
+ * its ether. Feel free to modify the divisor method to implement different
+ * Token Creation parameters
+*/
+
+
+contract TokenCreationInterface {
+
+    // End of token creation, in Unix time
+    uint public closingTime;
+    // Minimum fueling goal of the token creation, denominated in tokens to
+    // be created
+    uint public minTokensToCreate;
+    // True if the DAO reached its minimum fueling goal, false otherwise
+    bool public isFueled;
+    // For DAO splits - if privateCreation is 0, then it is a public token
+    // creation, otherwise only the address stored in privateCreation is
+    // allowed to create tokens
+    address public privateCreation;
+    // hold extra ether which has been sent after the DAO token
+    // creation rate has increased
+    ManagedAccount public extraBalance;
+    // tracks the amount of wei given from each contributor (used for refund)
+    mapping (address => uint256) weiGiven;
+
+    /// @dev Constructor setting the minimum fueling goal and the
+    /// end of the Token Creation
+    /// @param _minTokensToCreate Minimum fueling goal in number of
+    ///        Tokens to be created
+    /// @param _closingTime Date (in Unix time) of the end of the Token Creation
+    /// @param _privateCreation Zero means that the creation is public.  A
+    /// non-zero address represents the only address that can create Tokens
+    /// (the address can also create Tokens on behalf of other accounts)
+    // This is the constructor: it can not be overloaded so it is commented out
+    //  function TokenCreation(
+        //  uint _minTokensTocreate,
+        //  uint _closingTime,
+        //  address _privateCreation
+    //  );
+
+    /// @notice Create Token with `_tokenHolder` as the initial owner of the Token
+    /// @param _tokenHolder The address of the Tokens's recipient
+    /// @return Whether the token creation was successful
+    function createTokenProxy(address _tokenHolder) returns (bool success);
+
+    /// @notice Refund `msg.sender` in the case the Token Creation did
+    /// not reach its minimum fueling goal
+    function refund();
+
+    /// @return The divisor used to calculate the token creation rate during
+    /// the creation phase
+    function divisor() constant returns (uint divisor);
+
+    event FuelingToDate(uint value);
+    event CreatedToken(address indexed to, uint amount);
+    event Refund(address indexed to, uint value);
+}
+
+
+contract TokenCreation is TokenCreationInterface, Token {
+    function TokenCreation(
+        uint _minTokensToCreate,
+        uint _closingTime,
+        address _privateCreation) {
+
+        closingTime = _closingTime;
+        minTokensToCreate = _minTokensToCreate;
+        privateCreation = _privateCreation;
+        extraBalance = new ManagedAccount(address(this), true);
+    }
+
+    function createTokenProxy(address _tokenHolder) returns (bool success) {
+        if (now < closingTime && msg.value > 0
+            && (privateCreation == 0 || privateCreation == msg.sender)) {
+
+            uint token = (msg.value * 20) / divisor();
+            extraBalance.call.value(msg.value - token)();
+            balances[_tokenHolder] += token;
+            totalSupply += token;
+            weiGiven[_tokenHolder] += msg.value;
+            CreatedToken(_tokenHolder, token);
+            if (totalSupply >= minTokensToCreate && !isFueled) {
+                isFueled = true;
+                FuelingToDate(totalSupply);
+            }
+            return true;
+        }
+        throw;
+    }
+
+    function refund() noEther {
+        if (now > closingTime && !isFueled) {
+            // Get extraBalance - will only succeed when called for the first time
+            if (extraBalance.balance >= extraBalance.accumulatedInput())
+                extraBalance.payOut(address(this), extraBalance.accumulatedInput());
+
+            // Execute refund
+            if (msg.sender.call.value(weiGiven[msg.sender])()) {
+                Refund(msg.sender, weiGiven[msg.sender]);
+                totalSupply -= balances[msg.sender];
+                balances[msg.sender] = 0;
+                weiGiven[msg.sender] = 0;
+            }
+        }
+    }
+
+    function divisor() constant returns (uint divisor) {
+        // The number of (base unit) tokens per wei is calculated
+        // as `msg.value` * 20 / `divisor`
+        // The fueling period starts with a 1:1 ratio
+        if (closingTime - 2 weeks > now) {
+            return 20;
+        // Followed by 10 days with a daily creation rate increase of 5%
+        } else if (closingTime - 4 days > now) {
+            return (20 + (now - (closingTime - 2 weeks)) / (1 days));
+        // The last 4 days there is a constant creation rate ratio of 1:1.5
+        } else {
+            return 30;
+        }
+    }
+}
+/*
+This file is part of the DAO.
+
+The DAO is free software: you can redistribute it and/or modify
+it under the terms of the GNU lesser General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+The DAO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU lesser General Public License for more details.
+
+You should have received a copy of the GNU lesser General Public License
+along with the DAO.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
+/*
+Standard smart contract for a Decentralized Autonomous Organization (DAO)
+to automate organizational governance and decision-making.
+*/
+
 
 contract DAOInterface {
 
@@ -366,7 +392,7 @@ contract DAOInterface {
     // totalSupply / minQuorumDivisor
     uint public minQuorumDivisor;
     // The unix time of the last time quorum was reached on a proposal
-    uint public lastTimeMinQuorumMet;
+    uint  public lastTimeMinQuorumMet;
 
     // Address of the curator
     address public curator;
@@ -380,6 +406,10 @@ contract DAOInterface {
     mapping (address => uint) public rewardToken;
     // Total supply of rewardToken
     uint public totalRewardToken;
+
+    // The account used to manage the rewards which are to be distributed to the
+    // DAO Token Holders of this DAO
+    ManagedAccount public rewardAccount;
 
     // The account used to manage the rewards which are to be distributed to
     // any DAO that holds Reward Tokens
@@ -468,6 +498,7 @@ contract DAOInterface {
     /// @param _proposalDeposit The deposit to be paid for a regular proposal
     /// @param _minTokensToCreate Minimum required wei-equivalent tokens
     ///        to be created for a successful DAO Token Creation
+    /// @param _closingTime Date (in Unix time) of the end of the DAO Token Creation
     /// @param _privateCreation If zero the DAO Token Creation is open to public, a
     /// non-zero address means that the DAO Token Creation is only for the address
     // This is the constructor: it can not be overloaded so it is commented out
@@ -476,6 +507,7 @@ contract DAOInterface {
         //  DAO_Creator _daoCreator,
         //  uint _proposalDeposit,
         //  uint _minTokensToCreate,
+        //  uint _closingTime,
         //  address _privateCreation
     //  );
 
@@ -666,17 +698,14 @@ contract DAO is DAOInterface, Token, TokenCreation {
         DAO_Creator _daoCreator,
         uint _proposalDeposit,
         uint _minTokensToCreate,
+        uint _closingTime,
         address _privateCreation
-    ) TokenCreation(_minTokensToCreate, _privateCreation) {
+    ) TokenCreation(_minTokensToCreate, _closingTime, _privateCreation) {
 
         curator = _curator;
         daoCreator = _daoCreator;
-        if (proposalDeposit  == 0) {
-            proposalDeposit = 1000000000000000000;
-        } else {
-            proposalDeposit = _proposalDeposit;
-        }
-
+        proposalDeposit = _proposalDeposit;
+        rewardAccount = new ManagedAccount(address(this), false);
         DAOrewardAccount = new ManagedAccount(address(this), false);
         if (address(rewardAccount) == 0)
             throw;
@@ -691,11 +720,10 @@ contract DAO is DAOInterface, Token, TokenCreation {
     }
 
     function () returns (bool success) {
-        if (msg.value <= proposalDeposit
-        && msg.sender != address(extraBalance))
+        if (now < closingTime + creationGracePeriod && msg.sender != address(extraBalance))
             return createTokenProxy(msg.sender);
         else
-            throw;
+            return receiveEther();
     }
 
 
@@ -732,6 +760,7 @@ contract DAO is DAOInterface, Token, TokenCreation {
             throw;
 
         if (!isFueled
+            || now < closingTime
             || (msg.value < proposalDeposit && !_newCurator)) {
 
             throw;
@@ -743,10 +772,6 @@ contract DAO is DAOInterface, Token, TokenCreation {
         // to prevent a 51% attacker to convert the ether into deposit
         if (msg.sender == address(this))
             throw;
-
-        // to prevent curator from halving quorum before first proposal
-        if (proposals.length == 1) // initial length is 1 (see constructor)
-            lastTimeMinQuorumMet = now;
 
         _proposalID = proposals.length++;
         Proposal p = proposals[_proposalID];
@@ -849,6 +874,7 @@ contract DAO is DAOInterface, Token, TokenCreation {
         // in order to free the deposit and allow unblocking of voters
         if (!isRecipientAllowed(p.recipient)) {
             closeProposal(_proposalID);
+            p.creator.send(p.proposalDeposit);
             return;
         }
 
@@ -912,43 +938,6 @@ contract DAO is DAOInterface, Token, TokenCreation {
         p.open = false;
     }
 
-    function withdraw(
-        address _newCurator
-    ) noEther onlyTokenholders returns (bool _success) {
-
-        // Move ether
-        uint fundsToBeMoved =
-            (balances[msg.sender] * actualBalance()) /
-            totalSupply;
-
-        // Assign reward rights
-        uint rewardTokenToBeMoved =
-            (balances[msg.sender] * rewardToken[address(this)]) /
-            totalSupply;
-
-        uint paidOutToBeMoved = DAOpaidOut[address(this)] * rewardTokenToBeMoved /
-            rewardToken[address(this)];
-
-        rewardToken[msg.sender] += rewardTokenToBeMoved;
-        if (rewardToken[address(this)] < rewardTokenToBeMoved)
-            throw;
-        rewardToken[address(this)] -= rewardTokenToBeMoved;
-
-        DAOpaidOut[msg.sender] += paidOutToBeMoved;
-        if (DAOpaidOut[address(this)] < paidOutToBeMoved)
-            throw;
-        DAOpaidOut[address(this)] -= paidOutToBeMoved;
-
-        // Burn DAO Tokens
-        Transfer(msg.sender, 0, balances[msg.sender]);
-        totalSupply -= balances[msg.sender];
-        balances[msg.sender] = 0;
-        paidOut[msg.sender] = 0;
-
-        msg.sender.call.value(fundsToBeMoved);
-        return true;
-}
-
     function splitDAO(
         uint _proposalID,
         address _newCurator
@@ -959,6 +948,8 @@ contract DAO is DAOInterface, Token, TokenCreation {
         // Sanity check
 
         if (now < p.votingDeadline  // has the voting deadline arrived?
+            //The request for a split expires XX days after the voting deadline
+            || now > p.votingDeadline + splitExecutionPeriod
             // Does the new Curator address match?
             || p.recipient != _newCurator
             // Is it a new curator proposal?
@@ -1015,6 +1006,7 @@ contract DAO is DAOInterface, Token, TokenCreation {
 
         // Burn DAO Tokens
         Transfer(msg.sender, 0, balances[msg.sender]);
+        withdrawRewardFor(msg.sender); // be nice, and get his rewards
         totalSupply -= balances[msg.sender];
         balances[msg.sender] = 0;
         paidOut[msg.sender] = 0;
@@ -1046,9 +1038,6 @@ contract DAO is DAOInterface, Token, TokenCreation {
         uint reward =
             (rewardToken[msg.sender] * DAOrewardAccount.accumulatedInput()) /
             totalRewardToken - DAOpaidOut[msg.sender];
-
-        reward = DAOrewardAccount.balance < reward ? DAOrewardAccount.balance : reward;
-
         if(_toMembers) {
             if (!DAOrewardAccount.payOut(dao.rewardAccount(), reward))
                 throw;
@@ -1072,9 +1061,6 @@ contract DAO is DAOInterface, Token, TokenCreation {
 
         uint reward =
             (balanceOf(_account) * rewardAccount.accumulatedInput()) / totalSupply - paidOut[_account];
-
-        reward = rewardAccount.balance < reward ? rewardAccount.balance : reward;
-
         if (!rewardAccount.payOut(_account, reward))
             throw;
         paidOut[_account] += reward;
@@ -1084,8 +1070,8 @@ contract DAO is DAOInterface, Token, TokenCreation {
 
     function transfer(address _to, uint256 _value) returns (bool success) {
         if (isFueled
+            && now > closingTime
             && !isBlocked(msg.sender)
-            && _to != address(this)
             && transferPaidOut(msg.sender, _to, _value)
             && super.transfer(_to, _value)) {
 
@@ -1105,8 +1091,8 @@ contract DAO is DAOInterface, Token, TokenCreation {
 
     function transferFrom(address _from, address _to, uint256 _value) returns (bool success) {
         if (isFueled
+            && now > closingTime
             && !isBlocked(_from)
-            && _to != address(this)
             && transferPaidOut(_from, _to, _value)
             && super.transferFrom(_from, _to, _value)) {
 
@@ -1187,12 +1173,10 @@ contract DAO is DAOInterface, Token, TokenCreation {
 
 
     function halveMinQuorum() returns (bool _success) {
-        // this can only be called after `quorumHalvingPeriod` has passed or at anytime after
-        // fueling by the curator with a delay of at least `minProposalDebatePeriod`
-        // between the calls
+        // this can only be called after `quorumHalvingPeriod` has passed or at anytime
+        // by the curator with a delay of at least `minProposalDebatePeriod` between the calls
         if ((lastTimeMinQuorumMet < (now - quorumHalvingPeriod) || msg.sender == curator)
-            && lastTimeMinQuorumMet < (now - minProposalDebatePeriod)
-            && proposals.length > 1) {
+            && lastTimeMinQuorumMet < (now - minProposalDebatePeriod)) {
             lastTimeMinQuorumMet = now;
             minQuorumDivisor *= 2;
             return true;
@@ -1203,7 +1187,7 @@ contract DAO is DAOInterface, Token, TokenCreation {
 
     function createNewDAO(address _newCurator) internal returns (DAO _newDAO) {
         NewCurator(_newCurator);
-        return daoCreator.createDAO(_newCurator, 0, 0);
+        return daoCreator.createDAO(_newCurator, 0, 0, now + splitExecutionPeriod);
     }
 
     function numberOfProposals() constant returns (uint _numberOfProposals) {
@@ -1236,7 +1220,8 @@ contract DAO_Creator {
     function createDAO(
         address _curator,
         uint _proposalDeposit,
-        uint _minTokensToCreate
+        uint _minTokensToCreate,
+        uint _closingTime
     ) returns (DAO _newDAO) {
 
         return new DAO(
@@ -1244,6 +1229,7 @@ contract DAO_Creator {
             DAO_Creator(this),
             _proposalDeposit,
             _minTokensToCreate,
+            _closingTime,
             msg.sender
         );
     }
