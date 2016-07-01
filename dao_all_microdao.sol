@@ -912,9 +912,7 @@ contract DAO is DAOInterface, Token, TokenCreation {
         p.open = false;
     }
 
-    function withdraw(
-        address _newCurator
-    ) noEther onlyTokenholders returns (bool _success) {
+    function withdraw() noEther onlyTokenholders returns (bool _success) {
 
         // Move ether
         uint fundsToBeMoved =
